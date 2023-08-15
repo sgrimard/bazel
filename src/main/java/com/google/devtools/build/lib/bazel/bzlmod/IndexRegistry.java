@@ -113,6 +113,10 @@ public class IndexRegistry implements Registry {
     int patchStrip;
     String path;
     String archiveType;
+    String branch;
+    String commit;
+    String tag;
+    String remote;
   }
 
   /**
@@ -159,6 +163,8 @@ public class IndexRegistry implements Registry {
     switch (type) {
       case "archive":
         return createArchiveRepoSpec(sourceJson, bazelRegistryJson, key, repoName);
+      case "git":
+        return createGitRepoSpec(sourceJson, bazelRegistryJson, key, repoName);
       case "local_path":
         return createLocalPathRepoSpec(sourceJson, bazelRegistryJson, key, repoName);
       default:
@@ -257,6 +263,57 @@ public class IndexRegistry implements Registry {
         .setRemotePatches(remotePatches.buildOrThrow())
         .setRemotePatchStrip(sourceJson.get().patchStrip)
         .setArchiveType(sourceJson.get().archiveType)
+        .build();
+  }
+
+  private RepoSpec createGitRepoSpec(
+      Optional<SourceJson> sourceJson,
+      Optional<BazelRegistryJson> bazelRegistryJson,
+      ModuleKey key,
+      RepositoryName repoName)
+      throws IOException {
+    GitRepoSpecBuilder builder = new GitRepoSpecBuilder();
+
+    String remote = sourceJson.get().remote;
+    if (remote == null) {
+      throw new IOException(String.format("Missing remote for module %s", key));
+    }
+
+    String branch = sourceJson.get().branch;
+    String commit = sourceJson.get().commit;
+    String tag = sourceJson.get().tag;
+    if (branch != null && commit == null && tag == null) {
+      builder.setBranch(branch);
+    } else if (branch == null && commit != null && tag == null) {
+      builder.setCommit(commit);
+    } else if (branch == null && commit == null && tag != null) {
+      builder.setTag(tag);
+    } else {
+      throw new IOException(String.format("Exactly one of branch, commit or tag must be specified for module %s", key));
+    }
+
+    // Build remote patches as key-value pairs of "url" => "integrity".
+    ImmutableMap.Builder<String, String> remotePatches = new ImmutableMap.Builder<>();
+    if (sourceJson.get().patches != null) {
+      for (Map.Entry<String, String> entry : sourceJson.get().patches.entrySet()) {
+        remotePatches.put(
+            constructUrl(
+                getUrl(),
+                "modules",
+                key.getName(),
+                key.getVersion().toString(),
+                "patches",
+                entry.getKey()),
+            entry.getValue());
+      }
+    }
+
+    return builder
+        .setRepoName(repoName.getName())
+        .setRemote(remote)
+        .setStripPrefix(Strings.nullToEmpty(sourceJson.get().stripPrefix))
+        .setRemotePatches(remotePatches.buildOrThrow())
+        .setRemotePatchStrip(sourceJson.get().patchStrip)
         .build();
   }
 
