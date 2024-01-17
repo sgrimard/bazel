@@ -291,28 +291,10 @@ public class IndexRegistry implements Registry {
       throw new IOException(String.format("Exactly one of branch, commit or tag must be specified for module %s", key));
     }
 
-    // Build remote patches as key-value pairs of "url" => "integrity".
-    ImmutableMap.Builder<String, String> remotePatches = new ImmutableMap.Builder<>();
-    if (sourceJson.get().patches != null) {
-      for (Map.Entry<String, String> entry : sourceJson.get().patches.entrySet()) {
-        remotePatches.put(
-            constructUrl(
-                getUrl(),
-                "modules",
-                key.getName(),
-                key.getVersion().toString(),
-                "patches",
-                entry.getKey()),
-            entry.getValue());
-      }
-    }
-
     return builder
         .setRepoName(repoName.getName())
         .setRemote(remote)
         .setStripPrefix(Strings.nullToEmpty(sourceJson.get().stripPrefix))
-        .setRemotePatches(remotePatches.buildOrThrow())
-        .setRemotePatchStrip(sourceJson.get().patchStrip)
         .build();
   }
 

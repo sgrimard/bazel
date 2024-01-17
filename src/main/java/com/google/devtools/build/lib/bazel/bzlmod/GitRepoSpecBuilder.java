@@ -87,18 +87,6 @@ public class GitRepoSpecBuilder {
   }
 
   @CanIgnoreReturnValue
-  public GitRepoSpecBuilder setRemotePatches(ImmutableMap<String, String> remotePatches) {
-    attrBuilder.put("remote_patches", remotePatches);
-    return this;
-  }
-
-  @CanIgnoreReturnValue
-  public GitRepoSpecBuilder setRemotePatchStrip(int remotePatchStrip) {
-    attrBuilder.put("remote_patch_strip", StarlarkInt.of(remotePatchStrip));
-    return this;
-  }
-
-  @CanIgnoreReturnValue
   public GitRepoSpecBuilder setArchiveType(String archiveType) {
     if (!Strings.isNullOrEmpty(archiveType)) {
       attrBuilder.put("type", archiveType);
